@@ -10,3 +10,8 @@ Invisible: Makes the window completely transparent (0% opacity).
 Transform 🪄: Shrinks the window and changes the icon to a fake one.   
 Notes 📝: Changes the UI to a fake Notes app, completely hiding your content.
 3. Adding Custom Platforms   You can add custom websites by scrolling to the bottom of the main screen and clicking [+] Add Platform. Enter the Name and URL (Icon is optional).
+
+Donate for me
+Evm: 0xd63d44ba0830e500e5b6ec31dd975c1558bb5c20
+btc: bc1pdcrrcta5wl05t3pdanc8v79e72w2dcw7v5kpt5ckd4e09mhv2vfsj0qkuw
+Sol: 8RuTqrsMFQg1oxgaLx34vUCmuNw7YJGBTf3p2SeaZY9U
