@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIP Player — Facebook / TikTok</title>
+<style>
+  :root{
+    --bg: #121212;
+    --panel: #1a1a1a;
+    --panel-2: #202020;
+    --line: rgba(255,255,255,0.08);
+    --line-strong: rgba(255,255,255,0.16);
+    --text: #f3f1ea;
+    --text-dim: #9c998f;
+    --accent: #e8632c;
+    --accent-text: #2c1206;
+    --pin: #e0b341;
+    --radius: 10px;
+    --radius-lg: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); height:100%; }
+
+  .page{
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+  h1{ font-size: 18px; font-weight:600; margin: 0 0 4px; }
+  .sub-lead{ font-size: 13px; color: var(--text-dim); margin: 0 0 10px; line-height:1.6; }
+
+  .support-banner{
+    font-size:12.5px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    margin-bottom: 18px;
+    display:none;
+    line-height:1.6;
+  }
+  .support-banner.show{ display:block; }
+  .support-banner.warn{ background: rgba(232,99,44,0.12); border:1px solid rgba(232,99,44,0.35); color:#ffb38c; }
+
+  .add-row{ display:flex; gap:8px; margin-bottom: 22px; }
+  input[type="text"]{
+    flex:1;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 13.5px;
+    padding: 10px 12px;
+    font-family: inherit;
+  }
+  input[type="text"]::placeholder{ color: var(--text-dim); }
+  input[type="text"]:focus{ outline:none; border-color: var(--line-strong); }
+
+  button{ font-family:inherit; cursor:pointer; }
+  .btn{
+    background: var(--panel-2);
+    border:1px solid var(--line-strong);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    font-size: 13.5px;
+    font-weight:500;
+    transition: background .15s, transform .1s, opacity .15s;
+    white-space:nowrap;
+  }
+  .btn:hover{ background:#272727; }
+  .btn:active{ transform: scale(0.97); }
+  .btn.primary{ background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+  .btn.primary:hover{ background:#f06f33; }
+
+  .error-msg{ font-size:12.5px; color:#ff8a7a; margin: -10px 0 16px; display:none; }
+
+  .list{ display:flex; flex-direction:column; gap:8px; }
+  .empty-state{
+    color: var(--text-dim);
+    font-size:13px;
+    text-align:center;
+    padding: 50px 16px;
+    line-height:1.7;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-lg);
+  }
+
+  .row-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    border:1px solid var(--line);
+    background: var(--panel);
+  }
+  .row-item.is-open{ border-color: var(--accent); }
+  .row-item .badge{
+    flex-shrink:0;
+    width:28px;
+    height:28px;
+    border-radius:7px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:700;
+  }
+  .row-item .badge.facebook{ background:#1d4f91; color:#cfe1ff; }
+  .row-item .badge.tiktok{ background:#0d0d0d; color:#fff; border:1px solid var(--line-strong); }
+
+  .row-item .meta{ flex:1; min-width:0; }
+  .row-item .meta .title{
+    font-size:13px; font-weight:500;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .row-item .meta .sub{
+    font-size:11px; color: var(--text-dim); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  .row-item .row-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{
+    width:30px; height:30px; border-radius:7px;
+    background:transparent; border:1px solid transparent;
+    color: var(--text-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .icon-btn:hover{ background:#2c2c2c; color:var(--text); }
+  .icon-btn.open-btn{ color: var(--accent); border-color: rgba(232,99,44,0.3); }
+  .icon-btn.open-btn:hover{ background: rgba(232,99,44,0.12); }
+
+  .note{ font-size:11px; color: var(--text-dim); line-height:1.6; margin-top: 26px; }
+  .note code{ background: var(--panel-2); padding:1px 4px; border-radius:4px; font-size:10.5px; }
+
+  /* ---------- Fallback PIP nổi trong trang (cho trình duyệt không hỗ trợ Document PIP) ---------- */
+  .fallback-pip{
+    position: fixed;
+    width: 340px;
+    z-index: 999999;
+    background: var(--panel);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display:flex;
+    flex-direction:column;
+    user-select:none;
+  }
+  .fallback-pip.minimized .fp-body{ display:none; }
+  .fallback-pip.minimized .fp-controls{ display:none; }
+
+  .fp-header{
+    display:flex; align-items:center; gap:6px;
+    padding: 9px 8px 9px 10px;
+    background: var(--panel-2);
+    cursor: grab;
+    border-bottom: 1px solid var(--line);
+  }
+  .fp-header:active{ cursor: grabbing; }
+  .fp-header .badge{ flex-shrink:0; font-size:9px; font-weight:700; padding:2px 6px; border-radius:5px; }
+  .fp-header .badge.facebook{ background:#1d4f91; color:#cfe1ff; }
+  .fp-header .badge.tiktok{ background:#0d0d0d; color:#fff; border:1px solid var(--line-strong); }
+  .fp-header .title{ flex:1; font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fp-header .hdr-btn{
+    width:24px; height:24px; border-radius:5px;
+    background:transparent; border:none; color: var(--text-dim);
+    display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;
+  }
+  .fp-header .hdr-btn:hover{ background:#333; color:var(--text); }
+
+  .fp-body{ position:relative; width:100%; aspect-ratio: 9/16; background:#000; max-height: 75vh; }
+  .fp-body.is-facebook{ aspect-ratio: 16/9; }
+  .fp-body iframe{ width:100%; height:100%; border:0; display:block; }
+
+  .fp-controls{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding: 10px; background: var(--panel-2); border-top: 1px solid var(--line);
+  }
+  .fp-ctrl-btn{
+    width:34px; height:34px; border-radius:50%;
+    background: var(--panel); border:1px solid var(--line-strong); color: var(--text);
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+  }
+  .fp-ctrl-btn:hover{ background:#2a2a2a; }
+  .fp-ctrl-btn:disabled{ opacity:0.3; cursor:not-allowed; }
+  .fp-ctrl-btn.play-pause{ width:42px; height:42px; background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-size:15px; }
+  .fp-ctrl-btn.play-pause:hover{ background:#f06f33; }
+
+  .fp-resize{ position:absolute; right:0; bottom:0; width:18px; height:18px; cursor: nwse-resize; }
+  .fp-resize::after{
+    content:""; position:absolute; right:4px; bottom:4px; width:9px; height:9px;
+    border-right:2px solid var(--line-strong); border-bottom:2px solid var(--line-strong);
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>PIP player — Facebook &amp; TikTok</h1>
+  <p class="sub-lead">Dán link video Facebook hoặc TikTok → bấm "Ghim PIP" để mở cửa sổ nổi, xem trong lúc làm việc trên tab hoặc ứng dụng khác.</p>
+  <div class="support-banner" id="supportBanner"></div>
+
+  <div class="add-row">
+    <input type="text" id="linkInput" placeholder="Dán link video Facebook hoặc TikTok...">
+    <button class="btn primary" id="addBtn">Thêm</button>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="list" id="list">
+    <div class="empty-state" id="emptyState">
+      Chưa có video nào.<br>Dán một link Facebook hoặc TikTok ở trên để bắt đầu.
+    </div>
+  </div>
+
+  <p class="note">
+    Cửa sổ PIP thật (nổi ra ngoài cả khi đổi tab/ứng dụng) hiện chỉ được Chrome và Edge trên máy tính hỗ trợ. Nếu trình duyệt không hỗ trợ, tool tự chuyển sang khung nổi trong trang (kéo thả được, nhưng sẽ không theo khi bạn đổi tab).<br>
+    Nút <code>Dừng/Phát</code> sẽ tải lại video ở trạng thái tương ứng — trình duyệt không cho phép điều khiển trực tiếp nội dung của trang khác (Facebook/TikTok) nhúng qua iframe.
+  </p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /** @typedef {{id:string, url:string, platform:'facebook'|'tiktok', embedSrc:string, title:string}} VideoItem */
+
+  /** @type {VideoItem[]} */
+  let videos = [];
+  let pipState = null; // shared state: { videoId, isPlaying }
+  let docPipWindow = null; // window object when using real Document PIP
+  let fallbackEl = null;   // DOM element when using in-page fallback
+  let fpPos = { x: null, y: null, w: 340 }; // fallback position memory
+
+  const supportsDocPip = 'documentPictureInPicture' in window;
+
+  const els = {
+    input: document.getElementById('linkInput'),
+    addBtn: document.getElementById('addBtn'),
+    list: document.getElementById('list'),
+    emptyState: document.getElementById('emptyState'),
+    errorMsg: document.getElementById('errorMsg'),
+    banner: document.getElementById('supportBanner'),
+  };
+
+  if(!supportsDocPip){
+    els.banner.classList.add('show','warn');
+    els.banner.textContent = 'Trình duyệt này chưa hỗ trợ cửa sổ Picture-in-Picture thật. Dùng Chrome hoặc Edge trên máy tính để có cửa sổ nổi ra ngoài cả khi đổi tab. Tạm thời tool sẽ dùng khung nổi trong trang.';
+  }
+
+  function uid(){ return 'v' + Math.random().toString(36).slice(2,10); }
+
+  function showError(msg){
+    els.errorMsg.textContent = msg;
+    els.errorMsg.style.display = msg ? 'block' : 'none';
+  }
+
+  function detectPlatform(url){
+    const lower = url.toLowerCase();
+    if(lower.includes('facebook.com') || lower.includes('fb.watch')) return 'facebook';
+    if(lower.includes('tiktok.com')) return 'tiktok';
+    return null;
+  }
+
+  function extractTiktokVideoId(url){
+    const m = url.match(/video\/(\d+)/);
+    return m ? m[1] : '';
+  }
+
+  function buildEmbedSrc(url, platform){
+    if(platform === 'facebook'){
+      return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(url) + '&show_text=false';
+    }
+    if(platform === 'tiktok'){
+      const vid = extractTiktokVideoId(url);
+      if(vid) return 'https://www.tiktok.com/embed/v2/' + vid;
+      return null;
+    }
+    return null;
+  }
+
+  function guessTitle(url, platform){
+    try{
+      const u = new URL(url);
+      const parts = u.pathname.split('/').filter(Boolean);
+      if(parts.length){
+        const last = parts[parts.length-1].replace(/[-_]/g,' ').slice(0,40);
+        if(last && !/^\d+$/.test(last)) return last;
+      }
+    }catch(e){ /* ignore */ }
+    return platform === 'facebook' ? 'Video Facebook' : 'Video TikTok';
+  }
+
+  function addVideo(rawUrl){
+    const url = rawUrl.trim();
+    if(!url){ showError('Hãy dán một link video trước.'); return; }
+    try{ new URL(url); }
+    catch(e){ showError('Link không hợp lệ. Hãy dán đầy đủ link bắt đầu bằng https://'); return; }
+
+    const platform = detectPlatform(url);
+    if(!platform){ showError('Chỉ hỗ trợ link Facebook hoặc TikTok.'); return; }
+
+    const embedSrc = buildEmbedSrc(url, platform);
+    if(!embedSrc){ showError('Không lấy được ID video từ link này. Hãy kiểm tra lại link.'); return; }
+
+    showError('');
+    videos.push({ id: uid(), url, platform, embedSrc, title: guessTitle(url, platform) });
+    renderList();
+  }
+
+  function removeVideo(id){
+    videos = videos.filter(v => v.id !== id);
+    if(pipState && pipState.videoId === id) closePip();
+    renderList();
+  }
+
+  function platformLabel(p){ return p === 'facebook' ? 'FB' : 'TikTok'; }
+
+  function renderList(){
+    els.list.innerHTML = '';
+    if(videos.length === 0){
+      els.list.appendChild(els.emptyState);
+      return;
+    }
+    videos.forEach(v => {
+      const row = document.createElement('div');
+      row.className = 'row-item' + (pipState && pipState.videoId === v.id ? ' is-open' : '');
+
+      const badge = document.createElement('div');
+      badge.className = 'badge ' + v.platform;
+      badge.textContent = platformLabel(v.platform);
+      row.appendChild(badge);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = v.title;
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.textContent = v.url;
+      meta.appendChild(title);
+      meta.appendChild(sub);
+      row.appendChild(meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'row-actions';
+
+      const openBtn = document.createElement('button');
+      openBtn.className = 'icon-btn open-btn';
+      openBtn.setAttribute('aria-label','Ghim PIP');
+      openBtn.title = 'Ghim PIP';
+      openBtn.textContent = '📌';
+      openBtn.addEventListener('click', () => openPip(v.id));
+      actions.appendChild(openBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn';
+      delBtn.setAttribute('aria-label','Xoá');
+      delBtn.title = 'Xoá khỏi danh sách';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', () => removeVideo(v.id));
+      actions.appendChild(delBtn);
+
+      row.appendChild(actions);
+      els.list.appendChild(row);
+    });
+  }
+
+  function orderedIds(){ return videos.map(v => v.id); }
+
+  function pipNext(){
+    if(!pipState) return;
+    const ids = orderedIds();
+    if(ids.length < 2) return;
+    const i = ids.indexOf(pipState.videoId);
+    openPip(ids[(i+1) % ids.length], true);
+  }
+  function pipPrev(){
+    if(!pipState) return;
+    const ids = orderedIds();
+    if(ids.length < 2) return;
+    const i = ids.indexOf(pipState.videoId);
+    openPip(ids[(i-1+ids.length) % ids.length], true);
+  }
+
+  function closePip(){
+    if(docPipWindow){
+      try{ docPipWindow.close(); }catch(e){}
+      docPipWindow = null;
+    }
+    if(fallbackEl){
+      fallbackEl.remove();
+      fallbackEl = null;
+    }
+    pipState = null;
+    renderList();
+  }
+
+  async function openPip(videoId, keepWindow){
+    const v = videos.find(v => v.id === videoId);
+    if(!v) return;
+
+    pipState = { videoId, isPlaying: false };
+
+    if(supportsDocPip){
+      // Cửa sổ PIP đã mở và còn sống -> chỉ cập nhật nội dung bên trong, không mở cửa sổ mới
+      if(docPipWindow && !docPipWindow.closed && keepWindow){
+        try{
+          renderIntoDocPip(docPipWindow, v);
+          renderList();
+          return;
+        }catch(err){
+          console.error('Lỗi khi cập nhật cửa sổ PIP, sẽ mở lại:', err);
+          try{ docPipWindow.close(); }catch(e){}
+          docPipWindow = null;
+        }
+      }
+      if(docPipWindow){
+        try{ docPipWindow.close(); }catch(e){}
+        docPipWindow = null;
+      }
+      try{
+        docPipWindow = await window.documentPictureInPicture.requestWindow({
+          width: 420,
+          height: 700
+        });
+        docPipWindow.addEventListener('pagehide', () => {
+          docPipWindow = null;
+          pipState = null;
+          renderList();
+        });
+        renderIntoDocPip(docPipWindow, v);
+      }catch(err){
+        console.error('Không mở được Document PIP, chuyển sang khung nổi trong trang:', err);
+        docPipWindow = null;
+        openFallbackPip(v, keepWindow);
+      }
+    } else {
+      openFallbackPip(v, keepWindow);
+    }
+    renderList();
+  }
+
+  function controlBar(doc, multi, isPlaying, onPrev, onPlay, onNext){
+    const bar = doc.createElement('div');
+    bar.style.display = 'flex';
+    bar.style.alignItems = 'center';
+    bar.style.justifyContent = 'center';
+    bar.style.gap = '10px';
+    bar.style.padding = '12px';
+    bar.style.background = '#202020';
+    bar.style.borderTop = '1px solid rgba(255,255,255,0.08)';
+
+    function mkBtn(label, big, disabled){
+      const b = doc.createElement('button');
+      b.textContent = label;
+      b.disabled = !!disabled;
+      const size = big ? 46 : 36;
+      b.style.width = size + 'px';
+      b.style.height = size + 'px';
+      b.style.borderRadius = '50%';
+      b.style.fontSize = big ? '16px' : '13px';
+      b.style.cursor = disabled ? 'not-allowed' : 'pointer';
+      b.style.opacity = disabled ? '0.3' : '1';
+      if(big){
+        b.style.background = '#e8632c';
+        b.style.border = '1px solid #e8632c';
+        b.style.color = '#2c1206';
+      } else {
+        b.style.background = '#1a1a1a';
+        b.style.border = '1px solid rgba(255,255,255,0.16)';
+        b.style.color = '#f3f1ea';
+      }
+      return b;
+    }
+
+    const prevBtn = mkBtn('⏮', false, !multi);
+    prevBtn.setAttribute('aria-label','Video trước');
+    prevBtn.addEventListener('click', onPrev);
+
+    const playBtn = mkBtn(isPlaying ? '⏸' : '▶', true, false);
+    playBtn.setAttribute('aria-label', isPlaying ? 'Dừng' : 'Phát');
+    playBtn.addEventListener('click', onPlay);
+
+    const nextBtn = mkBtn('⏭', false, !multi);
+    nextBtn.setAttribute('aria-label','Video tiếp theo');
+    nextBtn.addEventListener('click', onNext);
+
+    bar.appendChild(prevBtn);
+    bar.appendChild(playBtn);
+    bar.appendChild(nextBtn);
+    return bar;
+  }
+
+  function renderIntoDocPip(pipWin, v){
+    const doc = pipWin.document;
+
+    // Nếu cấu trúc đã tồn tại (đổi video qua Next/Prev), chỉ cập nhật nội dung
+    // thay vì xoá sạch DOM -> tránh làm gãy listener đang xử lý ngay lúc click.
+    let root = doc.getElementById('pip-root');
+    const isFirstBuild = !root;
+
+    if(isFirstBuild){
+      doc.body.innerHTML = '';
+      doc.body.style.margin = '0';
+      doc.body.style.background = '#121212';
+      doc.body.style.height = '100vh';
+      doc.body.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+      root = doc.createElement('div');
+      root.id = 'pip-root';
+      root.style.display = 'flex';
+      root.style.flexDirection = 'column';
+      root.style.height = '100vh';
+      doc.body.appendChild(root);
+
+      const header = doc.createElement('div');
+      header.id = 'pip-header';
+      header.style.display = 'flex';
+      header.style.alignItems = 'center';
+      header.style.gap = '8px';
+      header.style.padding = '10px 12px';
+      header.style.background = '#202020';
+      header.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
+      header.style.flexShrink = '0';
+
+      const badge = doc.createElement('div');
+      badge.id = 'pip-badge';
+      badge.style.fontSize = '10px';
+      badge.style.fontWeight = '700';
+      badge.style.padding = '3px 7px';
+      badge.style.borderRadius = '5px';
+      badge.style.flexShrink = '0';
+      header.appendChild(badge);
+
+      const titleEl = doc.createElement('div');
+      titleEl.id = 'pip-title';
+      titleEl.style.color = '#f3f1ea';
+      titleEl.style.fontSize = '13px';
+      titleEl.style.fontWeight = '500';
+      titleEl.style.flex = '1';
+      titleEl.style.whiteSpace = 'nowrap';
+      titleEl.style.overflow = 'hidden';
+      titleEl.style.textOverflow = 'ellipsis';
+      header.appendChild(titleEl);
+
+      root.appendChild(header);
+
+      const bodyWrap = doc.createElement('div');
+      bodyWrap.id = 'pip-bodywrap';
+      bodyWrap.style.flex = '1';
+      bodyWrap.style.minHeight = '0';
+      bodyWrap.style.background = '#000';
+      bodyWrap.style.display = 'flex';
+      bodyWrap.style.position = 'relative';
+      bodyWrap.style.overflow = 'hidden';
+
+      const iframe = doc.createElement('iframe');
+      iframe.id = 'pip-iframe';
+      iframe.style.width = '100%';
+      iframe.style.border = '0';
+      iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen');
+      iframe.setAttribute('allowfullscreen', 'true');
+      bodyWrap.appendChild(iframe);
+      root.appendChild(bodyWrap);
+
+      const controlsHost = doc.createElement('div');
+      controlsHost.id = 'pip-controls-host';
+      root.appendChild(controlsHost);
+    }
+
+    // ---- Cập nhật phần nội dung theo video hiện tại ----
+    const badge = doc.getElementById('pip-badge');
+    badge.textContent = platformLabel(v.platform);
+    if(v.platform === 'facebook'){ badge.style.background = '#1d4f91'; badge.style.color = '#cfe1ff'; badge.style.border = 'none'; }
+    else { badge.style.background = '#0d0d0d'; badge.style.color = '#fff'; badge.style.border = '1px solid rgba(255,255,255,0.16)'; }
+
+    doc.getElementById('pip-title').textContent = v.title;
+
+    const cropTop = v.platform === 'facebook' ? 56 : 0;
+    const iframe = doc.getElementById('pip-iframe');
+    const newSrc = v.embedSrc + (v.embedSrc.includes('?') ? '&' : '?') + 'autoplay=' + (pipState.isPlaying ? '1' : '0');
+    if(cropTop > 0){
+      iframe.style.position = 'absolute';
+      iframe.style.top = '-' + cropTop + 'px';
+      iframe.style.left = '0';
+      iframe.style.height = 'calc(100% + ' + cropTop + 'px)';
+    } else {
+      iframe.style.position = 'static';
+      iframe.style.top = '0';
+      iframe.style.height = '100%';
+    }
+    iframe.src = newSrc;
+
+    const ids = orderedIds();
+    const multi = ids.length > 1;
+    const controlsHost = doc.getElementById('pip-controls-host');
+    controlsHost.innerHTML = '';
+    const bar = controlBar(
+      doc, multi, pipState.isPlaying,
+      () => pipPrev(),
+      () => {
+        pipState.isPlaying = !pipState.isPlaying;
+        renderIntoDocPip(pipWin, v);
+      },
+      () => pipNext()
+    );
+    controlsHost.appendChild(bar);
+  }
+
+  function openFallbackPip(v, keepPosition){
+    if(fallbackEl && keepPosition){
+      renderFallback(v);
+      return;
+    }
+    if(fallbackEl) fallbackEl.remove();
+
+    fallbackEl = document.createElement('div');
+    fallbackEl.className = 'fallback-pip';
+    if(fpPos.x === null){
+      fpPos.x = Math.max(20, window.innerWidth - 380);
+      fpPos.y = Math.max(20, window.innerHeight - 560);
+    }
+    fallbackEl.style.left = fpPos.x + 'px';
+    fallbackEl.style.top = fpPos.y + 'px';
+    fallbackEl.style.width = fpPos.w + 'px';
+    document.body.appendChild(fallbackEl);
+    renderFallback(v);
+  }
+
+  function renderFallback(v){
+    if(!fallbackEl) return;
+
+    let root = fallbackEl.querySelector('#fp-root');
+    const isFirstBuild = !root;
+
+    if(isFirstBuild){
+      fallbackEl.innerHTML = '';
+
+      const header = document.createElement('div');
+      header.className = 'fp-header';
+
+      const badge = document.createElement('div');
+      badge.id = 'fp-badge';
+      header.appendChild(badge);
+
+      const title = document.createElement('div');
+      title.id = 'fp-title';
+      title.className = 'title';
+      header.appendChild(title);
+
+      const minBtn = document.createElement('button');
+      minBtn.className = 'hdr-btn';
+      minBtn.id = 'fp-min-btn';
+      minBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        fallbackEl.classList.toggle('minimized');
+        updateMinButton();
+      });
+      header.appendChild(minBtn);
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'hdr-btn';
+      closeBtn.setAttribute('aria-label','Đóng');
+      closeBtn.title = 'Đóng';
+      closeBtn.textContent = '✕';
+      closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closePip(); });
+      header.appendChild(closeBtn);
+
+      fallbackEl.appendChild(header);
+      makeDraggable(header, fallbackEl);
+
+      const body = document.createElement('div');
+      body.id = 'fp-body';
+      body.style.position = 'relative';
+      body.style.overflow = 'hidden';
+
+      const iframe = document.createElement('iframe');
+      iframe.id = 'fp-iframe';
+      iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture; fullscreen');
+      iframe.setAttribute('allowfullscreen', 'true');
+      iframe.setAttribute('frameborder', '0');
+      iframe.style.width = '100%';
+      body.appendChild(iframe);
+
+      const resizer = document.createElement('div');
+      resizer.className = 'fp-resize';
+      body.appendChild(resizer);
+      makeResizable(resizer, fallbackEl);
+
+      fallbackEl.appendChild(body);
+
+      const controls = document.createElement('div');
+      controls.className = 'fp-controls';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'fp-ctrl-btn';
+      prevBtn.id = 'fp-prev-btn';
+      prevBtn.setAttribute('aria-label','Video trước');
+      prevBtn.textContent = '⏮';
+      prevBtn.addEventListener('click', pipPrev);
+      controls.appendChild(prevBtn);
+
+      const playBtn = document.createElement('button');
+      playBtn.className = 'fp-ctrl-btn play-pause';
+      playBtn.id = 'fp-play-btn';
+      playBtn.addEventListener('click', () => {
+        pipState.isPlaying = !pipState.isPlaying;
+        renderFallback(v);
+      });
+      controls.appendChild(playBtn);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'fp-ctrl-btn';
+      nextBtn.id = 'fp-next-btn';
+      nextBtn.setAttribute('aria-label','Video tiếp theo');
+      nextBtn.textContent = '⏭';
+      nextBtn.addEventListener('click', pipNext);
+      controls.appendChild(nextBtn);
+
+      fallbackEl.appendChild(controls);
+
+      const marker = document.createElement('span');
+      marker.id = 'fp-root';
+      marker.style.display = 'none';
+      fallbackEl.appendChild(marker);
+    }
+
+    function updateMinButton(){
+      const isMin = fallbackEl.classList.contains('minimized');
+      const minBtn = fallbackEl.querySelector('#fp-min-btn');
+      minBtn.setAttribute('aria-label', isMin ? 'Mở rộng' : 'Thu nhỏ');
+      minBtn.title = isMin ? 'Mở rộng' : 'Thu nhỏ';
+      minBtn.textContent = isMin ? '▢' : '–';
+    }
+
+    // ---- Cập nhật nội dung theo video hiện tại ----
+    const badge = fallbackEl.querySelector('#fp-badge');
+    badge.className = 'badge ' + v.platform;
+    badge.textContent = platformLabel(v.platform);
+
+    fallbackEl.querySelector('#fp-title').textContent = v.title;
+    updateMinButton();
+
+    const body = fallbackEl.querySelector('#fp-body');
+    body.className = 'fp-body' + (v.platform === 'facebook' ? ' is-facebook' : '');
+    body.style.position = 'relative';
+    body.style.overflow = 'hidden';
+
+    const fpCropTop = v.platform === 'facebook' ? 56 : 0;
+    const iframe = fallbackEl.querySelector('#fp-iframe');
+    if(fpCropTop > 0){
+      iframe.style.position = 'absolute';
+      iframe.style.top = '-' + fpCropTop + 'px';
+      iframe.style.left = '0';
+      iframe.style.height = 'calc(100% + ' + fpCropTop + 'px)';
+    } else {
+      iframe.style.position = 'static';
+      iframe.style.top = '0';
+      iframe.style.height = '100%';
+    }
+    iframe.src = v.embedSrc + (v.embedSrc.includes('?') ? '&' : '?') + 'autoplay=' + (pipState.isPlaying ? '1' : '0');
+
+    const ids = orderedIds();
+    const multi = ids.length > 1;
+
+    const prevBtn = fallbackEl.querySelector('#fp-prev-btn');
+    prevBtn.disabled = !multi;
+
+    const playBtn = fallbackEl.querySelector('#fp-play-btn');
+    playBtn.setAttribute('aria-label', pipState.isPlaying ? 'Dừng' : 'Phát');
+    playBtn.textContent = pipState.isPlaying ? '⏸' : '▶';
+
+    const nextBtn = fallbackEl.querySelector('#fp-next-btn');
+    nextBtn.disabled = !multi;
+  }
+
+  function makeDraggable(handle, el){
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const startX = e.clientX, startY = e.clientY;
+      const origX = fpPos.x, origY = fpPos.y;
+
+      function onMove(ev){
+        fpPos.x = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, origX + (ev.clientX - startX)));
+        fpPos.y = Math.max(0, Math.min(window.innerHeight - 40, origY + (ev.clientY - startY)));
+        el.style.left = fpPos.x + 'px';
+        el.style.top = fpPos.y + 'px';
+      }
+      function onUp(){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  function makeResizable(handle, el){
+    handle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const origW = fpPos.w;
+
+      function onMove(ev){
+        fpPos.w = Math.max(220, Math.min(640, origW + (ev.clientX - startX)));
+        el.style.width = fpPos.w + 'px';
+      }
+      function onUp(){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  els.addBtn.addEventListener('click', () => {
+    addVideo(els.input.value);
+    els.input.value = '';
+  });
+  els.input.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      addVideo(els.input.value);
+      els.input.value = '';
+    }
+  });
+
+  renderList();
+})();
+</script>
+
+</body>
+</html>
