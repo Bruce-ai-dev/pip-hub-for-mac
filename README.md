@@ -3,7 +3,7 @@ A sneaky little macOS video player for surviving long workdays. Watch videos in 
 
 
 1. How to use Boss Key   Boss Key allows you to instantly hide/show the active window using a single keyboard shortcut. You can change this shortcut in Settings (⚙️) (default is Tab key).
-2. 2. Boss Key Modes   Minimize (Dock): Minimizes the window to the Mac Dock.
+   2. Boss Key Modes   Minimize (Dock): Minimizes the window to the Mac Dock.
   
 Arrow (Left Edge): Slides the window off-screen to the left, leaving only a small arrow. Hover over it to show again.   
 Invisible: Makes the window completely transparent (0% opacity).   
@@ -11,6 +11,7 @@ Transform 🪄: Shrinks the window and changes the icon to a fake one.
 Notes 📝: Changes the UI to a fake Notes app, completely hiding your content.
 3. Adding Custom Platforms   You can add custom websites by scrolling to the bottom of the main screen and clicking [+] Add Platform. Enter the Name and URL (Icon is optional).
 
+The tool still has some issues, so thank you for your understanding and for using it
 Donate for me
 Evm: 0xd63d44ba0830e500e5b6ec31dd975c1558bb5c20
 btc: bc1pdcrrcta5wl05t3pdanc8v79e72w2dcw7v5kpt5ckd4e09mhv2vfsj0qkuw
